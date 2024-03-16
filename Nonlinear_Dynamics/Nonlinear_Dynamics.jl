@@ -4,37 +4,52 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ 8ec57e30-e315-11ee-258e-a186c0b1c841
 using DifferentialEquations, DynamicalSystems, ChaosTools, BifurcationKit
 
 # ╔═╡ 867ef5d5-2b60-49c8-ad5e-a3dcec722421
-using Plots
+using Plots, PlutoUI
 
-# ╔═╡ 3c32d1f4-82a1-4f11-9ffb-5b2080440b27
-function P_step(r)
-	return 1/(sqrt(1+exp(-1)*(r^(-2)-1)))
+# ╔═╡ 0e487cf7-ae59-4fe8-aa72-906b0761eb66
+begin
+	u01 = [0.1, 0.0] 
+	u02 = [1.5, 0.0] 
 end
-
 
 # ╔═╡ 3ab38f2c-4e6e-4430-a110-fdacb36e7a92
 begin
-	u01 = [0.1, 0.0] 
-	iter = 30
-	res1 = Float64[]
-	push!(res1,u01[1]) 
-	for i ∈ 2:iter+1
-		push!(res1,P_step(res1[i-1]))
+	function P_step(r) 
+		# Analytical Poincare map of Ex.8.7.1, p.282, Strogatz with θ_dot = 4π
+		return 1/(sqrt(1+exp(-1)*(r^(-2)-1)))
 	end
 	
-	u02 = [1.5, 0.0] 
+	iter = 30 
+
+	#Empty containers to store the results
+	res1 = Float64[]
 	res2 = Float64[]
-	push!(res2,u02[1]) 
+
+	#Push first results using the initial condition
+	push!(res1,P_step(u01[1])) 
+	push!(res2,P_step(u02[1]))
+
 	for i ∈ 2:iter+1
+		push!(res1,P_step(res1[i-1]))
 		push!(res2,P_step(res2[i-1]))
 	end
 	
 	scatter(0:iter, res1)
-	# scatter!(0:iter, res2)
+	scatter!(0:iter, res2)
 	plot!()
 end
 
@@ -70,7 +85,7 @@ function PoincareMap(vectorField!::Function, u0::Vector{Float64},
 		push!(thetas,integrator.u[2])
 	end
 	cb = DiscreteCallback(condition, affect!,save_positions=(true,true))
-	prob = ODEProblem(vectorField!, u0, tspan)
+	prob = ODEProblem(vectorField!, u0, tspan, p)
 	sol = solve(prob, Tsit5(), callback = cb, 
 				adaptive = false, dt=dt_, maxiters = maxiter)
 	return [map,thetas]
@@ -79,17 +94,11 @@ end
 # ╔═╡ ffad8b38-8260-46d8-ae2d-aa293a9b0382
 begin
 	tspan = (0.00, 15.00)
-	dt_ = 5 * 1e-3 #MUST be 5 before the expoenent
+	dt_ = 1 * 1e-3
 	max_iter = Int64(2*tspan[2]÷dt_)
 	map1 = PoincareMap(vectorField!, u01, tspan, dt_, max_iter)
 	map2 = PoincareMap(vectorField!, u02, tspan, dt_, max_iter)
 end
-
-# ╔═╡ 26c99052-514f-4331-9e7d-bd2732d3ee11
-
-
-# ╔═╡ b1345902-be60-4f05-ba28-2552875bb3ad
-
 
 # ╔═╡ 0c44d869-7216-4871-a8f0-850411d557da
 begin
@@ -98,10 +107,39 @@ begin
 	scatter!(map2[1])	
 end
 
-# ╔═╡ 156ee825-b816-49e7-9a65-b1e3d07401c5
+# ╔═╡ cb3c3eba-1085-40a1-af89-79387be1284f
+function challengeODE!(du, u, p, t)
+    r, θ = u
+    A, ω = p
+    du[1] = A * (r - π) * exp(-ω * t)
+    du[2] = π  # θ' = π
+end
+
+# ╔═╡ 09c13f3c-5218-4a21-b028-a0bb5b6b3641
+begin
+	A = 1.00
+	ω = 0.041π
+	u03 = [10.00,0.0]
+	p = [A, ω]
+	tspan2 = (0.00,50.00)
+	map3 = PoincareMap(challengeODE!, u03, tspan2, dt_, Int64(2*tspan2[2]/dt_), p)
+	map4 = PoincareMap(challengeODE!, u02, tspan2, dt_, Int64(2*tspan2[2]/dt_), p)
+end
+
+# ╔═╡ 12223c46-c109-4360-bffc-f5dd94294aaa
 
 
-# ╔═╡ 9fde53d0-e8b6-41f5-8c6e-c587ca1bbcf2
+# ╔═╡ 4ced9ca5-82f6-4ac5-ba00-9b9a8d0142df
+begin
+	plot()
+	# @bind A_slider Slider(0.0:0.1:2.0, default=1, show_value=A)
+	# @bind ω_slider Slider(0.0:0.05:1.0, default=0.5, show_value=ω)
+	# @bind tspan_slider Slider(0.0:0.1:100.0, default=tspan, show_value=true)
+	scatter!(map3[1])
+	scatter!(map4[1])	
+end
+
+# ╔═╡ 91b39f71-f3ec-42b8-a7c6-493529983e76
 
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -112,6 +150,7 @@ ChaosTools = "608a59af-f2a3-5ad4-90b4-758bdf3122a7"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 DynamicalSystems = "61744808-ddfa-5f27-97ff-6e42cc95d634"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
 BifurcationKit = "~0.3.3"
@@ -119,6 +158,7 @@ ChaosTools = "~3.1.2"
 DifferentialEquations = "~7.13.0"
 DynamicalSystems = "~3.3.5"
 Plots = "~1.40.2"
+PlutoUI = "~0.7.58"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -127,7 +167,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.0"
 manifest_format = "2.0"
-project_hash = "983d5dca2e4e127317397feecc64369086bb82d7"
+project_hash = "47149219b670bb957fe88e66c950be0057feca9f"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "016833eb52ba2d6bea9fcb50ca295980e728ee24"
@@ -144,6 +184,12 @@ weakdeps = ["ChainRulesCore", "Test"]
     [deps.AbstractFFTs.extensions]
     AbstractFFTsChainRulesCoreExt = "ChainRulesCore"
     AbstractFFTsTestExt = "Test"
+
+[[deps.AbstractPlutoDingetjes]]
+deps = ["Pkg"]
+git-tree-sha1 = "0f748c81756f2e5e6854298f11ad8b2dfae6911a"
+uuid = "6e696c72-6542-2067-7265-42206c756150"
+version = "1.3.0"
 
 [[deps.Accessors]]
 deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "LinearAlgebra", "MacroTools", "Markdown", "Test"]
@@ -986,11 +1032,29 @@ git-tree-sha1 = "f218fe3736ddf977e0e772bc9a586b2383da2685"
 uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
 version = "0.3.23"
 
+[[deps.Hyperscript]]
+deps = ["Test"]
+git-tree-sha1 = "179267cfa5e712760cd43dcae385d7ea90cc25a4"
+uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
+version = "0.0.5"
+
+[[deps.HypertextLiteral]]
+deps = ["Tricks"]
+git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
+uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+version = "0.9.5"
+
 [[deps.HypothesisTests]]
 deps = ["Combinatorics", "Distributions", "LinearAlgebra", "Printf", "Random", "Rmath", "Roots", "Statistics", "StatsAPI", "StatsBase"]
 git-tree-sha1 = "4b5d5ba51f5f473737ed9de6d8a7aa190ad8c72f"
 uuid = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"
 version = "0.11.0"
+
+[[deps.IOCapture]]
+deps = ["Logging", "Random"]
+git-tree-sha1 = "8b72179abc660bfab5e28472e019392b97d0985c"
+uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
+version = "0.2.4"
 
 [[deps.IfElse]]
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
@@ -1352,6 +1416,11 @@ weakdeps = ["ChainRulesCore", "ForwardDiff", "SpecialFunctions"]
     ForwardDiffExt = ["ChainRulesCore", "ForwardDiff"]
     SpecialFunctionsExt = "SpecialFunctions"
 
+[[deps.MIMEs]]
+git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
+uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
+version = "0.1.4"
+
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl"]
 git-tree-sha1 = "72dc3cf284559eb8f53aa593fe62cb33f83ed0c0"
@@ -1665,6 +1734,12 @@ version = "1.40.2"
     IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
     ImageInTerminal = "d8c32880-2388-543b-8c61-d9f865259254"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[[deps.PlutoUI]]
+deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
+git-tree-sha1 = "71a22244e352aa8c5f0f2adde4150f62368a3f2e"
+uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+version = "0.7.58"
 
 [[deps.PoissonRandom]]
 deps = ["Random"]
@@ -2664,15 +2739,16 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╠═8ec57e30-e315-11ee-258e-a186c0b1c841
 # ╠═867ef5d5-2b60-49c8-ad5e-a3dcec722421
-# ╠═3c32d1f4-82a1-4f11-9ffb-5b2080440b27
+# ╠═0e487cf7-ae59-4fe8-aa72-906b0761eb66
 # ╠═3ab38f2c-4e6e-4430-a110-fdacb36e7a92
 # ╠═62494975-d221-488c-8b8e-772dbe3426a3
 # ╠═f321619e-71a2-41e3-bc2a-b78b316800d4
 # ╠═ffad8b38-8260-46d8-ae2d-aa293a9b0382
-# ╠═26c99052-514f-4331-9e7d-bd2732d3ee11
-# ╠═b1345902-be60-4f05-ba28-2552875bb3ad
 # ╠═0c44d869-7216-4871-a8f0-850411d557da
-# ╠═156ee825-b816-49e7-9a65-b1e3d07401c5
-# ╠═9fde53d0-e8b6-41f5-8c6e-c587ca1bbcf2
+# ╠═cb3c3eba-1085-40a1-af89-79387be1284f
+# ╠═09c13f3c-5218-4a21-b028-a0bb5b6b3641
+# ╠═12223c46-c109-4360-bffc-f5dd94294aaa
+# ╠═4ced9ca5-82f6-4ac5-ba00-9b9a8d0142df
+# ╠═91b39f71-f3ec-42b8-a7c6-493529983e76
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
