@@ -11,7 +11,7 @@ using DifferentialEquations, DynamicalSystems, ChaosTools, FindPeaks1D
 using Random, LinearAlgebra, LsqFit, Statistics
 
 # ╔═╡ 8821d7a3-9250-4754-afdf-0a079b6e40db
-using Plots
+using Plots, LaTeXStrings
 
 # ╔═╡ a8578809-5a66-48cc-a83c-5a9cb7dac02c
 function RosslerEqns!(du,u,p,t)
@@ -39,11 +39,14 @@ function plotRossler(tstop= 50.0)
 	
 	tspan = (0, tstop)
 	sol = solveRossler(init, tspan, a, b, c, reltol = 1e-9, saveat = 1e-4)
-	plt = plot()
+	plt = plot(xlabel = "x", ylabel = "y", zlabel = "z")
 	scatter!(plt, [init[1]],[init[2]],[init[3]], color=:red, label="Initial point")
 	plot!(plt, sol, idxs = (1,2,3), label = "Trajectory")
 	return sol, plt
 end
+
+# ╔═╡ 2ec7e33c-188a-4393-a949-a1ca9d9561ad
+
 
 # ╔═╡ 3dc840d4-a51f-48c0-b639-d09e04a9e4d3
 function generateRandomVector(norm_)
@@ -109,7 +112,7 @@ begin
 	
 	figure
 
-	target_value = 300
+	target_value = 250
 	_, cutoff = findmin(abs.(sol1.t .- target_value))
 	cutoff_time = sol1.t[cutoff]
 
@@ -125,6 +128,9 @@ function RosslerRandom(cutoff_time)
 	distance1 = [norm(vec) for vec ∈ (sol1 .- sol2)]
 	return sol1.t, distance1
 end
+
+# ╔═╡ f5f8045c-235f-43ea-8b8c-4777ce879559
+
 
 # ╔═╡ 3a619a31-d454-44b8-88dc-a38d18f8727b
 begin
@@ -149,11 +155,20 @@ begin
 	λ
 end
 
-# ╔═╡ 0a1ba61c-fb42-4c8f-ae22-4090aec220e7
-
-
 # ╔═╡ 64cfb2d9-3d51-44bc-96fb-2b3ba0a49f45
 λ_avg = mean(λ)
+
+# ╔═╡ 8e48c82c-abe5-49ab-9f18-abd2f4ecbde3
+δ(t) = 1e-6 * exp(λ_avg * t)
+
+# ╔═╡ 3ae9847e-67eb-4b27-abe2-be967d69f43d
+begin
+	dt_steps = diff(sol1.t)[1]
+	t = collect(0.0:dt_steps:sol1.t[cutoff])
+	plot(xlabel="Time \$t\$", ylabel = L"||\textbf{x}_0 - \textbf{x}_1||")
+	plot!(t, δ.(t), color=:black, label = L"\delta(t) = \delta_0 e^{\lambda t}")
+	plot!(t, distance1[1:cutoff], color=:red, label = "Simulation")
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -162,6 +177,7 @@ ChaosTools = "608a59af-f2a3-5ad4-90b4-758bdf3122a7"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 DynamicalSystems = "61744808-ddfa-5f27-97ff-6e42cc95d634"
 FindPeaks1D = "d8961e24-b28b-4efb-8e50-1c680b9a7431"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LsqFit = "2fda8390-95c7-5789-9bda-21331edee243"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
@@ -173,6 +189,7 @@ ChaosTools = "~3.1.2"
 DifferentialEquations = "~7.13.0"
 DynamicalSystems = "~3.3.5"
 FindPeaks1D = "~0.1.8"
+LaTeXStrings = "~1.3.1"
 LsqFit = "~0.15.0"
 Plots = "~1.40.2"
 """
@@ -183,7 +200,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.0"
 manifest_format = "2.0"
-project_hash = "0d843b28f1384a54ef161ba3c444c4bc81ab3962"
+project_hash = "1a6ef7b2f484cb03726231ded7bf263899e068ac"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "016833eb52ba2d6bea9fcb50ca295980e728ee24"
@@ -2668,6 +2685,7 @@ version = "1.4.1+1"
 # ╠═a8578809-5a66-48cc-a83c-5a9cb7dac02c
 # ╠═ec6bd5a9-01a0-41a6-97e8-1e95d2496a46
 # ╠═6aa72381-faf6-4741-bd3a-efeb6c35d4ad
+# ╠═2ec7e33c-188a-4393-a949-a1ca9d9561ad
 # ╠═3dc840d4-a51f-48c0-b639-d09e04a9e4d3
 # ╠═da0d4764-9878-4761-af6c-d56abb138643
 # ╠═ad838cea-e0bc-42e2-9cba-dddc6dc68d4f
@@ -2676,9 +2694,11 @@ version = "1.4.1+1"
 # ╠═639dc390-c271-4444-a95f-809fe6125c72
 # ╠═e96ac275-81b9-4836-80ce-081dfd6cd1d2
 # ╠═753be338-3326-4a67-bd41-50b881af7290
+# ╠═f5f8045c-235f-43ea-8b8c-4777ce879559
 # ╠═3a619a31-d454-44b8-88dc-a38d18f8727b
 # ╠═7ed89258-b00e-46ed-9f9c-131e1bb79097
-# ╠═0a1ba61c-fb42-4c8f-ae22-4090aec220e7
 # ╠═64cfb2d9-3d51-44bc-96fb-2b3ba0a49f45
+# ╠═8e48c82c-abe5-49ab-9f18-abd2f4ecbde3
+# ╠═3ae9847e-67eb-4b27-abe2-be967d69f43d
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

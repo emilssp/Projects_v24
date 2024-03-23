@@ -172,7 +172,7 @@ end
 
 # ╔═╡ 9475a60f-b261-4d08-a7df-7811878cee05
 begin
-	x0 = solveLorenz(init1, (0.0, 50), σ, ρ, β; reltol = 1e-9, saveat = 1e-4)[end]
+	x0 = solveLorenz(init1, (0.00, 50), σ, ρ, β; reltol = 1e-9, saveat = 1e-4)[end]
 	x1 = x0 + generateRandomVector(NORM)
 	sol1 = solveLorenz(x0, (0.0, 30), σ, ρ, β; reltol = 1e-9, saveat = 1e-4)
 	sol2 = solveLorenz(x1, (0.0, 30), σ, ρ, β; reltol = 1e-9, saveat = 1e-4)
@@ -233,6 +233,24 @@ end
 
 # ╔═╡ b209180d-327d-4522-9090-e130f4c5c778
 λ_avg = mean(λ)
+
+# ╔═╡ 89bd4d2b-2a37-432a-9aaf-116cb361aed3
+δ(t) = 1e-6 * exp(λ_avg * t)
+
+# ╔═╡ c8582dfd-3875-4725-af82-73c40bec2bf1
+begin
+	figure2 = Figure()
+	axis2 = Axis(figure2[1, 1], xlabel = L"Time $t$", ylabel =L"$||\textbf{x}_0 - \textbf{x}_1||$")
+	dt_steps = diff(sol1.t)[1]
+	t = collect(0.0:dt_steps:sol1.t[200000])
+	lines!(axis2, t, δ.(t), color=:black, label = L"$\delta(t) = \delta_0 e^{\lambda t}$")
+	lines!(axis2, t, distance1[1:200000], color=:red, label = "Simulation")
+
+    axislegend(axis2, position = :lt)
+end
+
+# ╔═╡ a5d4281e-903f-4e2d-ad3a-ccfa5592d7ee
+figure2
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2927,5 +2945,8 @@ version = "3.5.0+0"
 # ╠═9203f17b-e01a-48dd-a778-8bfd1c83a19d
 # ╠═95e3a7df-e6bb-40e2-bc6c-07b339bd0494
 # ╠═b209180d-327d-4522-9090-e130f4c5c778
+# ╠═89bd4d2b-2a37-432a-9aaf-116cb361aed3
+# ╠═c8582dfd-3875-4725-af82-73c40bec2bf1
+# ╠═a5d4281e-903f-4e2d-ad3a-ccfa5592d7ee
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
