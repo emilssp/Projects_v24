@@ -43,16 +43,19 @@ begin
 	push!(res1,P_step(u01[1])) 
 	push!(res2,P_step(u02[1]))
 
-	for i ∈ 2:iter+1
+	for i ∈ 2:iter
 		push!(res1,P_step(res1[i-1]))
 		push!(res2,P_step(res2[i-1]))
 	end
-	
-	plt.scatter(0:iter, res1)
-	plt.scatter!(0:iter, res2)
-	plt.plot!()
+
+	plt.plot(xlabel = "Iterations", ylabel = "r")
+	plt.scatter!(0:iter-1, res1, label = "\$r_0\$ = ($(u01[1]), $(u01[2]))")
+	plt.scatter!(0:iter-1, res2, label = "\$r_0\$ = ($(u02[1]), $(u02[2]))")	
 
 end
+
+# ╔═╡ b977e4fe-3159-42f1-b995-5a9ecbea59d1
+
 
 # ╔═╡ 4ea0fe31-bfed-427b-841e-0675c9be7ae8
 function vectorField!(du, u, p, t)
@@ -98,18 +101,26 @@ end
 
 # ╔═╡ 6d34f0de-1a73-4d1c-9090-68565edfaef1
 begin
-	tspan = (0.00, 30.00)
+	tspan = (0.00, 15.00)
 	dt_ = 1 * 1e-3
 	max_iter = Int64(2*tspan[2]÷dt_)
 	map1 = PoincareMap(vectorField!, u01, tspan, dt_; maxiter = max_iter)
 	map2 = PoincareMap(vectorField!, u02, tspan, dt_; maxiter = max_iter)
+	
 end
 
 # ╔═╡ e3d5250b-83f7-43e6-92eb-2d3c12965bac
 begin
-	plt.plot()
-	plt.scatter!(map1[1])
-	plt.scatter!(map2[1])	
+	pl = plt.plot(layout=(2,1))
+	plt.plot!(pl, ylabel = "P(r)",legendfontsize=10)
+	plt.plot!(pl[2], title = "Analytical", titlefontsize= 12)
+	plt.plot!(pl[1], title = "Numerical", titlefontsize= 12) 
+
+	plt.scatter!(pl[1], map1[1], label = "")
+	plt.scatter!(pl[1], map2[1], label = "")
+	plt.scatter!(pl[2], 1:iter, res1, label = "\$r_0\$ = ($(u01[1]), $(u01[2]))")
+	plt.scatter!(pl[2], 1:iter, res2, label = "\$r_0\$ = ($(u02[1]), $(u02[2]))")	
+	plt.savefig(pl, "poincare_iter.pdf")
 end
 
 # ╔═╡ 3062a8d1-828f-4107-861d-cc88623e249c
@@ -129,44 +140,69 @@ function getMap(u0,tspan, dt; A, ω)
 end
 
 # ╔═╡ 6597741a-3179-4799-82d0-2dd54a03fd65
-function cobwebDiagram!(p::plt.Plot{plt.GRBackend}, r, map; 
+function cobwebDiagram!(p, r, map; 
 						label = false, cw_color =:blue)
 	if label
+		plt.plot!(p, r, map[1], color=:black,linewidth = 2,label="P(r)", ticksfontsize=10)
 		plt.plot!(p, r,r, color =:black, linewidth = 2, linestyle =:dash, label="y(r)=r")
-		plt.plot!(p, [r[1],r[1]], [map[1][1], 0], label = "", color = cw_color)
+		plt.plot!(p, [r[1],r[1]], [map[1][1], 0], label = "\$r_0\$ = ($(r[1]), 0)", color = cw_color)
 		for i ∈ 2:length(map[1])
 			plt.plot!(p, [map[1][i-1],r[i-1]],[r[i],r[i]], label = "", color=cw_color)
 			plt.plot!(p, [r[i],r[i]],[map[1][i],r[i]], label = "", color=cw_color)
 		end
-		plt.plot!(p, r, map[1], color=:black,linewidth = 2,label="P(r)")
 		
 	else 
+		plt.plot!(p, r, map[1], color=:black,linewidth = 2,label="", ticksfontsize=10)
 		plt.plot!(p, r,r, color =:black, linewidth = 2, linestyle =:dash, label="")
-		plt.plot!(p, [r[1],r[1]], [map[1][1], 0], label = "", color = cw_color)
+		plt.plot!(p, [r[1],r[1]], [map[1][1], 0], label = "\$r_0\$ = ($(r[1]), 0)", color = cw_color)
 		for i ∈ 2:length(map[1])
 			plt.plot!(p, [map[1][i-1],r[i-1]],[r[i],r[i]], label = "", color=cw_color)
 			plt.plot!(p, [r[i],r[i]],[map[1][i],r[i]], label = "", color=cw_color)
 		end
-		plt.plot!(p, r, map[1], color=:black,linewidth = 2,label="")
 	end
 end
 
 # ╔═╡ 24ba7749-84fa-4dbc-b9ba-2c17be008ba9
 begin
-	p1 = plt.plot()
+	p1 = plt.plot(legendfontsize=10)
 	r1 = map1[1][1:end-1]
-	r2 = map2[1][1:end-1]
+	r2 = map2[1][1:end-1] 
 	insert!(r1,1,u01[1])
 	insert!(r2,1,u02[1])
 	cobwebDiagram!(p1, r1, map1; label = true, cw_color =:blue)
 	cobwebDiagram!(p1, r2, map2; label = false, cw_color =:red)
+	plt.savefig(p1, "cobweb_warmup.pdf")
 end
 
+# ╔═╡ 6c41f0c6-f5ec-415b-be84-88422c7632de
+p1
+
+# ╔═╡ 17a4ff3e-9d61-4522-ba02-65a03d719978
+function relative_err(an,num)
+	diff = abs.(an .- num)
+	return abs.(diff ./ num) .* 100
+end
+
+# ╔═╡ 308ccfc7-ea0c-4d79-8eb8-c055e870aaaa
+begin
+	ϵ_r1 = relative_err(res1,map1[1])
+	ϵ_r2 = relative_err(res2,map2[1])
+	plt.plot(size=(800,300))
+	plt.plot!(ϵ_r1, label = "\$r_0\$ = ($(u01[1]), $(u01[2]))", linewidth =2)
+	plt.plot!(ϵ_r2, label = "\$r_0\$ = ($(u02[1]), $(u02[2]))", linewidth =2)
+	plt.plot!(xlabel = "Iterations\n", ylabel="\nError [%]", 
+				legendfontsize=12)
+	plt.savefig("error.pdf")
+end 
+
+# ╔═╡ de3149ca-6324-430f-89cd-1cd35d0d91e1
+
+
 # ╔═╡ 3107d8f6-7ab5-48f0-9e59-d62114e4b268
-@bind A_slider PlutoUI.Slider(-2:0.001:1.0, default=-0.1, show_value=true)
+@bind A_slider PlutoUI.Slider(-6:0.001:3.0, default=-0.1, show_value=true)
 
 # ╔═╡ cab42df4-b05e-426f-8014-1fbaa1cf6190
-@bind ω_slider PlutoUI.Slider(-1.0:0.001:1.0, default=-0.25, show_value=true)
+@bind ω_slider PlutoUI.Slider(-2.0:0.001:2.0, default=-0.25, show_value=true)
 
 # ╔═╡ f38fa797-3e85-4cf8-887a-574ee8ebc4c2
 begin
@@ -182,15 +218,50 @@ begin
 	insert!(r3,1,u03[1])
 	insert!(r4,1,u04[1])
 	
-	p = plt.plot()
+	p = plt.plot(legendfontsize=10)
 	cobwebDiagram!(p, r3, map3; label = true, cw_color =:blue)
 	cobwebDiagram!(p, r4, map4; label = false, cw_color =:red)
 	p
+	# plt.savefig(p, "cobweb_A_0003w_045.pdf")
 end
 
 
-# ╔═╡ 871d5f5f-48e4-46d5-8d55-b0c7010f0287
+# ╔═╡ 032da906-666a-4fc3-bbc8-8587f59cf3be
+begin
+	u05 = [1.0,0.0]
+	u06 = [5.00,0.0]
+	tspan3 = (0.00,50.00)
 
+
+	
+	map5 = getMap(u05,tspan3, dt_; A = -0.003, ω = -0.45)
+	map6 = getMap(u06,tspan3, dt_; A = -0.003, ω = -0.45)
+	
+	map7 = getMap(u05,tspan3, dt_; A = 3.0, ω = 0.25)
+	map8 = getMap(u06,tspan3, dt_; A = 3.0, ω = 0.25)
+
+	
+	r5 = map5[1][1:end-1]
+	r6 = map6[1][1:end-1]
+	r7 = map7[1][1:end-1]
+	r8 = map8[1][1:end-1]
+	insert!(r5,1,u05[1])
+	insert!(r6,1,u06[1])
+	insert!(r7,1,u05[1])
+	insert!(r8,1,u06[1])
+	
+	p2 = plt.plot(layout = (2,1), legendfontsize=10, titlefontsize=12)
+	cobwebDiagram!(p2[2], r5, map5; label = false, cw_color =:blue)
+	cobwebDiagram!(p2[2], r6, map6; label = false, cw_color =:red)
+	cobwebDiagram!(p2[1], r7, map7; label = true, cw_color =:blue)
+	cobwebDiagram!(p2[1], r8, map8; label = false, cw_color =:red)
+	plt.plot!(p2, ylabel ="P(r)")
+	plt.plot!(p2[1], title = "\$A=3.0, \\omega = 0.25\$")
+	plt.plot!(p2[2], title = "\$A=-0.003, \\omega = -0.45\$")
+	plt.plot!(p2[2], xlabel ="r")
+	
+	plt.savefig(p2, "cobwebs.pdf") 
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2344,6 +2415,7 @@ version = "1.4.1+1"
 # ╠═cf801242-e63b-11ee-232c-61bdff9ba4f7
 # ╠═ac2fff07-74e8-4f83-a677-111fb5532b59
 # ╠═c697ae83-4de2-4486-ad05-478fbaf1b07e
+# ╠═b977e4fe-3159-42f1-b995-5a9ecbea59d1
 # ╠═4ea0fe31-bfed-427b-841e-0675c9be7ae8
 # ╠═087d798c-24d6-42e5-b2d0-a80810bd9138
 # ╠═625d1f11-3dc1-4347-b297-aa8ebea1ca82
@@ -2354,9 +2426,13 @@ version = "1.4.1+1"
 # ╠═89242781-7b51-49f2-9f36-dd968232e368
 # ╠═6597741a-3179-4799-82d0-2dd54a03fd65
 # ╠═24ba7749-84fa-4dbc-b9ba-2c17be008ba9
+# ╠═6c41f0c6-f5ec-415b-be84-88422c7632de
+# ╠═17a4ff3e-9d61-4522-ba02-65a03d719978
+# ╠═308ccfc7-ea0c-4d79-8eb8-c055e870aaaa
+# ╠═de3149ca-6324-430f-89cd-1cd35d0d91e1
 # ╠═3107d8f6-7ab5-48f0-9e59-d62114e4b268
 # ╠═cab42df4-b05e-426f-8014-1fbaa1cf6190
 # ╠═f38fa797-3e85-4cf8-887a-574ee8ebc4c2
-# ╠═871d5f5f-48e4-46d5-8d55-b0c7010f0287
+# ╠═032da906-666a-4fc3-bbc8-8587f59cf3be
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
